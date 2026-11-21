@@ -1,5 +1,7 @@
 # CircumVolve Probe
 
+**English** · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
+
 An Android probe that reproduces the DNS-poisoning and SNI-blocking evasion
 strategies found by *CircumVolve: Automated Discovery of Censorship Evasion
 Strategies Using Large Language Models* (CCS 2026).
@@ -294,8 +296,11 @@ useful here.
 Android apps cannot set `SO_MARK` without `CAP_NET_ADMIN`, so this trick is a
 desktop-only escape hatch.
 
-## License / attribution
+## License
 
-Code in this repository is written for reproducing the published results.
-Strategy names, tables and section numbers follow the paper; see the paper for
-the original methodology and the authors' evaluation.
+MIT — see [LICENSE](LICENSE).
+
+The code here reproduces the paper's published results. Strategy names, tables and
+section numbers follow the paper; see it for the original methodology and the
+authors' evaluation. No code from the original repository is vendored:
+`Probes.java` is an independent implementation of the described techniques.

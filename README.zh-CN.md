@@ -1,5 +1,7 @@
 # CircumVolve 探针
 
+[English](README.md) · **简体中文** · [繁體中文](README.zh-TW.md)
+
 一个可在无 root 的 Android 设备上运行的**直连探测**工具，用来复现
 《CircumVolve: Automated Discovery of Censorship Evasion Strategies Using
 Large Language Models》（CCS 2026）在 DNS 与 TLS 两章发现的规避策略。
@@ -256,7 +258,10 @@ mihomo 安装了 `ip rule 5210: fwmark 0x80000/0xff0000 lookup main`，
 
 Android app 没有 `CAP_NET_ADMIN` 就无法设置 `SO_MARK`，所以这招只在桌面可用。
 
-## 授权与出处
+## 授权
 
-本项目的代码用于复现已发表的结果。策略名称、表格与章节编号皆沿用论文；
-原始方法与作者们的评估请见论文本身。
+MIT，见 [LICENSE](LICENSE)。
+
+本项目的代码用于重现论文已发表的结果。策略名称、表格与章节编号皆沿用论文；
+原始方法与作者们的评估请见论文本身。本项目没有引用原始项目的代码，
+`Probes.java` 是对论文所述技术的独立实现。
