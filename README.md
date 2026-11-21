@@ -1,146 +1,130 @@
-# CircumVolve Probe
+# CircumVolve 探针
 
-**English** · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
+[English](README.en.md) · **简体中文** · [繁體中文](README.zh-TW.md)
 
-An Android probe that reproduces the DNS-poisoning and SNI-blocking evasion
-strategies found by *CircumVolve: Automated Discovery of Censorship Evasion
-Strategies Using Large Language Models* (CCS 2026).
+一个可在无 root 的 Android 设备上运行的**直连探测**工具，用来复现
+《CircumVolve: Automated Discovery of Censorship Evasion Strategies Using
+Large Language Models》（CCS 2026）在 DNS 与 TLS 两章发现的规避策略。
 
-No proxy, no VPN, no root: every datagram is built by the app itself and sent
-straight from the process. The UI is dark-only and localized in English,
-Simplified Chinese and Traditional Chinese.
+无代理、无 VPN、无 root：每个封包都由 app 自己构造，直接从进程发出。
+界面为暗色，支持英文、简体中文和繁体中文。
 
-- Paper: <https://gfw.report/publications/ccs26/en/>
-- Source of the original system: <https://github.com/alizohaib/ccs26-circumvolve>
-- Project page (Chinese): <https://gfw.report/publications/ccs26/zh/>
+- 论文：<https://gfw.report/publications/ccs26/en/>
+- 原始系统代码：<https://github.com/alizohaib/ccs26-circumvolve>
+- 论文中文页面：<https://gfw.report/publications/ccs26/zh/>
 
-> This is a measurement instrument for research and for reproducing published
-> results. It does not tunnel traffic and it is not a circumvention client.
+> 这是研究用的测量工具，用来复现已发表的结果。它不建立通道，也不是规避客户端。
 
-## Answer: yes, both are bypassable — narrowly
+## 结论：两者都能绕，但范围很窄
 
-Measured on China Telecom Wi-Fi, no proxy, no VPN, no root, system DNS untouched.
+实测环境：中国电信 Wi-Fi、无代理、无 VPN、无 root、系统 DNS 未改。
 
-| Block | Works without a proxy? | Evidence |
+| 封锁 | 无代理能绕过吗 | 证据 |
 |---|---|---|
-| DNS poisoning | **Yes, per query** | *decoy second question*: 0/3 runs injected in three separate runs, genuine answer every time (`+120 ms`, real IPs) |
-| SNI blocking | **Yes, per connection** | *trailing dot FQDN*: baseline `signal.org` reset, control `www.cloudflare.com` handshakes, `signal.org.` handshakes |
+| DNS 污染 | **能，以单次查询为单位** | 诱饵第二问：三次独立执行都是 0/3 次被注入，每次都拿到真实解析（`+120ms`、真实 IP） |
+| SNI 封锁 | **能，以单条连接为单位** | 尾点 FQDN：基线 `signal.org` 被重置、对照组 `www.cloudflare.com` 握手成功、`signal.org.` 握手成功 |
 
-Both are real: the control group proves the block existed, and the variant proves it
-was evaded on that connection.
+两者都是真的：对照组证明封锁存在，变体证明那一次连接绕过了它。
 
-But the scope is narrow, and it matters:
+但范围很窄，这点必须说清楚：
 
-- **It is packet-level, not a tunnel.** A bypassed query answers one name once; a
-  bypassed handshake completes one TCP connection. Neither gives you a working
-  channel to a blocked site. This app is a measuring instrument, not a proxy
-  replacement.
-- **DNS bypass only helps code that builds its own queries.** Anything using the
-  system resolver still receives the forgery, because the injection happens on the
-  path to `:53`, not inside the app.
-- **Only one variant worked per block.** Four of the seven DNS cases were injected
-  on every run; of the TLS attempts the trailing dot was the only one to handshake
-  — record splitting lost all three variants on this network, which means the
-  middlebox reassembles TLS records.
-- **Results move between runs.** The same datagram drew two forged replies in one
-  run and none in the next, which is why every case is sent three times and the
-  report leads with a rate.
+- **这是封包层，不是通道。** 一次成功绕过的查询只解析一个名字一次；一次成功绕过的握手只完成一条 TCP 连接。
+  两者都不等于“能连上被封的网站”。这个 app 是测量工具，不是代理的替代品。
+- **DNS 绕过只对自己组查询的程序有用。** 走系统解析器的程序收到的仍是伪造回应，
+  因为注入发生在通往 `:53` 的路径上，不在 app 里面。
+- **每个封锁只有一个变体成功。** 七个 DNS 用例里有四个每次都吃到注入；记录拆分三种切法在这条网络上全灭，
+  代表中间盒会重组 TLS 记录。
+- **结果会在两次之间变动。** 同一个封包，一次收到两条伪造、一次完全干净，
+  所以每个用例都送三次，报告以比率开头。
 
-So: **the GFW's DNS injector and its SNI matcher can each be defeated on
-individual packets without any proxy, but that is not the same as having working
-access to blocked sites.** Treat the result as "this specific rule was evaded
-here", not as "the blockade is broken".
+所以：**GFW 的 DNS 注入器与 SNI 比对器，在没有代理的情况下，确实可以逐封包击破；
+但这不等于“能自由存取被封的网站”。** 请把结果读成“这条规则在这里被绕过了”，
+而不是“封锁被破解了”。
 
-## Why these targets
+## 为什么选这两个目标
 
-Two different blocks need two different targets, and picking the wrong one makes
-the TLS section useless.
+DNS 与 TLS 被挡的层次不同，选错目标会让 TLS 那一节完全失去意义。
 
-**DNS — `pornhub.com`.** Only the name matters here: the query is a UDP datagram
-to `8.8.8.8:53` and the answer never depends on the site being reachable. Any name
-on the GFW keyword list works, and this one draws forged replies on every run.
+**DNS — `pornhub.com`。** 这里只用到名字：查询是送往 `8.8.8.8:53` 的 UDP 封包，
+回应跟网站本身能不能连无关。任何在 GFW 关键字清单上的域名都行，而这个每次都会吃到伪造回应。
 
-**TLS — `signal.org`.** `DIG` returns `104.18.10.47` / `104.18.11.47`, both
-Cloudflare, so the address is shared with unrelated sites and stays reachable. Its
-SNI is on the GFW blocklist:
+**TLS — `signal.org`。** 解析结果是 `104.18.10.47`／`104.18.11.47`，两个都在 Cloudflare，
+地址与其他网站共用，因此一定可达。它的 SNI 在 GFW 的黑名单上：
 
 ```
-IP 104.18.11.47   SNI signal.org            -> connection reset
+IP 104.18.11.47   SNI signal.org            -> 连接重置
 IP 104.18.11.47   SNI www.cloudflare.com    -> ServerHello
 ```
 
-Because the address is shared, a control group is possible: same address, same
-port, same ClientHello bytes, only the SNI differs.
+地址共用让对照组成立：同一位址、同一个端口、同样的 ClientHello 字节，只有 SNI 不同。
 
-(An earlier build used `pornhub.com` here. That name resolves to `66.254.114.41`,
-whose `:443` is refused outright, so every variant — including the allowed-name
-control — failed identically and no conclusion was possible. The block sat below
-the layer under test.)
+（较早的版本在这里用 `pornhub.com`。那个名字解析到 `66.254.114.41`，`:443` 直接拒绝，
+所以每个变体——连白名单对照组——都以完全相同的方式失败，得不出任何结论。
+封锁发生在被测层之下。）
 
-So the middlebox is matching on the name, which is exactly the layer this app can try to
-evade. The control probe is run on every execution and shown as the last TLS card;
-without it a refusal cannot be distinguished from an address-level block.
+所以中间盒比对的是名字，
+而那正是这个 app 能尝试绕过的层。对照组每次都会执行，并以最后一张 TLS 卡片呈现；
+没有它，就无法分辨“名字被封”与“地址被封”。
 
-## What it measures
+## 它测什么
 
-The paper evaluates every candidate strategy in two stages. The app mirrors
-both, with one deliberate change: DNS stage 1 counts replies instead of taking
-the first one.
+论文对每个候选策略做两阶段评估，app 完全照搬，但在 DNS 第一阶段做了一个刻意的改动：
+**数回应，而不是取第一条**。
 
-| Stage | Paper | This app |
+| 阶段 | 论文 | 本 app |
 |---|---|---|
-| 1 — validity | the real resolver or server still accepts the crafted message | DNS: send one query and collect **every** reply inside a 1200 ms window; **more than one reply means an on-path injector raced the real resolver**. TLS: send the crafted ClientHello to `104.16.133.229:443` and see whether a ServerHello comes back |
-| 2 — evasion | the censor's matcher no longer sees the blocked string | Local DPI simulators. DNS: a literal-offset-12 matcher (GFW injector model) and a pointer-aware matcher. TLS: a first-record-only matcher and a full-reassembly matcher |
+| 1 有效性 | 真实解析器或服务器是否仍接受变形封包 | DNS：发出一个查询，收满 1200ms 窗口内**所有**回应；**收到多于一条就代表路径上有注入器抢答**。TLS：把构造好的 ClientHello 送到 `104.16.133.229:443`，看是否回 ServerHello |
+| 2 规避 | 审查方的匹配器是否还找得到被禁字符串 | 本地 DPI 模拟器。DNS：只读 offset 12 的字面匹配器（GFW 注入器模型）与跟随指针的匹配器。TLS：只读首记录与完整重组两种 |
 
-Why stage 1 counts replies: on a poisoned path the injector answers in
-10–15 ms and the genuine resolver answers at 170–180 ms. Taking the first reply
-measures the injector, not the resolver — the app previously reported "resolver
-accepted" for every malformed query because of exactly that bug.
+为什么第一阶段要数回应：在被污染的路径上，注入器 10–15ms 就回答，真解析器要 170–180ms。
+只取第一条等于在量注入器，而不是解析器——app 先前对每个畸形查询都报“解析器接受”，
+正是这个 bug 造成的。
 
-## Case map to the paper
+## 对照论文
 
-| Paper | Case in the app |
+| 论文位置 | app 中的字符串资源 |
 |---|---|
-| §4.2 Table 2 — compression, forward pointer | `dns_fwd_*` |
-| §4.2 Table 2 — compression, deep chain | `dns_chain_*` |
-| §4.2 Table 2 — multi-question, decoy | `dns_decoy_*` |
-| §4.2 Table 2 — multi-question, forged QDCOUNT | `dns_fakeqd_*` |
-| §4.2 Table 2 — flags, Z / TC | `dns_ztc_*` |
-| §4.2 Table 2 — flags, forged ANCOUNT | `dns_counts_*` |
-| §4.5 Table 5 — record split at SNI / handshake header / mixed versions | `tls_split_sni_*`, `tls_split_head_*`, `tls_split_ver_*` |
-| §4.5 Table 5 — TCP segmentation via padding extension | `tls_pad_*` |
-| §4.5 Table 5 — SNI manipulation, trailing dot / omit | `tls_dot_*`, `tls_nosni_*` |
-| §4.3 — SNI manipulation, Punycode-hex (QUIC in the paper) | `tls_puny_*` |
+| §4.2 Table 2 压缩：前向指针 | `dns_fwd_*` |
+| §4.2 Table 2 压缩：指针链 | `dns_chain_*` |
+| §4.2 Table 2 多问题：诱饵 | `dns_decoy_*` |
+| §4.2 Table 2 多问题：伪造 QDCOUNT | `dns_fakeqd_*` |
+| §4.2 Table 2 标志位：Z / TC | `dns_ztc_*` |
+| §4.2 Table 2 标志位：伪造 ANCOUNT | `dns_counts_*` |
+| §4.5 Table 5 记录拆分：SNI 内／握手头内／版本混用 | `tls_split_sni_*`、`tls_split_head_*`、`tls_split_ver_*` |
+| §4.5 Table 5 TCP 分段：填充扩展 | `tls_pad_*` |
+| §4.5 Table 5 SNI 操纵：尾点／省略 | `tls_dot_*`、`tls_nosni_*` |
+| §4.3 SNI 操纵：Punycode-hex（论文用于 QUIC） | `tls_puny_*` |
 
-## Architecture
+## 架构
 
 ```mermaid
 flowchart LR
-  A["Probes<br/>hand-built bytes"] --> B["stage 1<br/>real endpoint"]
-  A --> C["stage 2<br/>local DPI sim"]
-  B --> D["Reply list<br/>count + timing"]
-  C --> E["Dpi enum"]
+  A["Probes<br/>手写字节"] --> B["阶段 1<br/>真实端点"]
+  A --> C["阶段 2<br/>本地 DPI 模拟"]
+  B --> D["回应列表<br/>数量 + 时间"]
+  C --> E["Dpi 枚举"]
   D --> F["Result"]
   E --> F
-  F --> G["MainActivity<br/>cards + badges"]
+  F --> G["MainActivity<br/>卡片 + 标签"]
 ```
 
-| File | Role |
+| 文件 | 职责 |
 |---|---|
-| `Probes.java` | DNS/TLS packet construction, polling, DPI simulators, probe runner. Returns enums and resource ids, never user-facing text |
-| `MainActivity.java` | Dark-only card UI; owns every string via `R.string` |
-| `res/values/strings.xml` | English (default) |
-| `res/values-zh-rCN/strings.xml` | Simplified Chinese |
-| `res/values-zh-rTW/strings.xml` | Traditional Chinese |
-| `res/xml/locales_config.xml` | Per-app language picker (Android 13+) |
+| `Probes.java` | DNS/TLS 封包构造、轮询、DPI 模拟器、探测流程。只返回枚举与资源 id，不生成任何面向用户的文字 |
+| `MainActivity.java` | 暗色卡片界面；所有文字都经 `R.string` |
+| `res/values/strings.xml` | 英文（默认） |
+| `res/values-zh-rCN/strings.xml` | 简体中文 |
+| `res/values-zh-rTW/strings.xml` | 繁体中文 |
+| `res/xml/locales_config.xml` | 每个 app 各自的语言选择器（Android 13+） |
 
-Internationalization rules used here:
+这里用的 i18n 规则：
 
-- No string literals in Java. `Result` carries `nameRes` / `noteRes`; verdicts are enums (`Dpi`, `Server`).
-- `%1$d` / `%1$s` positional arguments only, so translation can reorder them.
-- The three locales are registered in `locales_config.xml`, so the app follows the system locale and can be overridden per app in Settings → Apps → CircumVolve Probe → Language.
+- Java 内没有任何字符串字面值。`Result` 带 `nameRes` / `noteRes`；判定结果是枚举（`Dpi`、`Server`）。
+- 只用 `%1$d` / `%1$s` 位置参数，翻译时可以自由调换语序。
+- 三个语系都登记在 `locales_config.xml`，所以 app 跟随系统语言，也可以在
+  “设置 → 应用 → CircumVolve 探针 → 语言”单独覆写。
 
-## Build
+## 构建
 
 ```bash
 export ANDROID_HOME=/opt/android-sdk JAVA_HOME=/opt/jdk21/jdk-21.0.11+10
@@ -149,158 +133,135 @@ adb install -r -t app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n org.gfwreport.probe/.MainActivity
 ```
 
-Gradle 8.13 is required: AGP 8.13.1 uses a Gradle internal API that was removed
-in Gradle 9.6, so the system default (9.8.x) fails with
-`Plugin 'com.android.internal.application' relies on 'org.android.api.problems.internal.InternalProblems'`.
+必须用 Gradle 8.13：AGP 8.13.1 依赖一个在 Gradle 9.6 被移除的内部 API，
+系统默认的 9.8.x 会直接失败，错误信息是
+`Plugin 'com.android.internal.application' relies on 'org.gradle.api.problems.internal.InternalProblems'`。
 
-## Copying the result
+## 导出结果
 
-After a run the "Copy report" button appears next to "Run again". It puts a plain-text
-dump of the whole run on the clipboard: app version, Android version, device model,
-blocked host, TLS host, locale, the per-section counters, then one block per case with
-its note, DPI verdict, server verdict and every reply with its arrival time.
+运行完后，“重新运行”旁会出现“复制报告”。它把整轮结果以纯文本放进剪贴板：
+app 版本、Android 版本、设备型号、被禁主机、TLS 主机、语言、各区块统计，
+然后每个用例一段，含说明、DPI 判定、服务器判定，以及每一条回应与到达时间。
 
-That text is what you want in a bug report; the cards are a rendering of the same data.
+报告问题时要贴的就是这段文字；卡片只是同一批数据的呈现。
 
-### Repeated runs
+### 重复采样
 
-Injectors fire probabilistically: the same datagram drew two forged replies on one
-run and none on the next, on the same device minutes apart. Every DNS case is
-therefore sent 3 times, and the report leads with a rate:
+注入器是概率性的：同一个封包，同一台设备，几分钟内可能一次收到 2 条伪造、一次收到 0 条。
+所以每个 DNS 用例都送 3 次，报告以比率开头：
 
 ```
-reply  1/3 runs injected
+reply  1/3 次被注入
        +0ms  199.59.148.222
        +153ms  no-A
 ```
 
-Fractional results are the norm on the GFW, so `injected 4/7` in the summary means
-"4 cases injected in at least one of their runs", not "4 cases always injected".
-A case that draws nothing every time is the interesting one.
+在 GFW 上分数结果是常态，所以摘要的 `注入 4/7` 意思是“7 个用例中，有 4 个至少一次被注入”，
+不是“4 个每次都被注入”。每次都干净的那个才是重点。
 
-- The summary carries `reached server n/7 · blocked m/7`: the first counts the
-  evasion attempts that drew a real TLS alert (they got past the censor and were
-  declined by the server), the second counts resets and timeouts (stopped at the
-  censor). The denominator is the 7 attempts — the baseline and the allowed-name
-  control are reference points and are excluded from every per-variant rate. On
-  the reference run `reached` was 2, for `nosni` and `punycode`, so those two did
-  clear the GFW's SNI filter.
+- 摘要多一行 `抵达服务器 n/8 · 被拦截 m/8`：前者是收到真 TLS alert（穿过了审查，
+  被服务器拒绝），后者是连接被重置或超时（在审查层就被挡）。你那次的数字是
+  `抵达 2/7`（省略 server_name、Punycode-hex）——这两个变体确实穿过了 GFW 的 SNI 过滤。
+  分母是 7 个变体：基线与白名单对照组是参考点，不计入任何逐变体比率。
 
-- TLS cards separate "reset by the censor" from "refused by the server":
-  `connection reset` means the peer dropped the connection right after our
-  ClientHello (injection or an address block), while `Rejected` means a real TLS
-  alert came back. Both used to print as `error`, which reads as a protocol bug
-  rather than as censorship.
+- TLS 卡片会把“被 GFW 重置”与“服务器拒绝”分开显示：`连线被重置` 是我们送出
+  ClientHello 后对端直接断线（注入或地址封锁），`被拒绝` 是真的收到 TLS alert。
+  两者在旧版都印成“错误”，会把审查行为误读成协议错误。
 
-- A determinate bar with `n / 16  <case name>` under the button, so the run is
-  observable: 7 DNS cases then 9 TLS cases, each counting the moment its own
-  socket work starts. The counters span both phases, so the bar never resets.
+- 按钮下方有一条确定性进度条与 `n / 16  <用例名>`，让整轮可观察：先 7 个 DNS
+  用例、再 9 个 TLS 用例（含对照组），各自在自己的 socket 工作开始时计数。
+  计数跨两个阶段，所以进度条不会归零重来。
 
-## Reading the results
+## 怎么读结果
 
-| Badge | Meaning |
+| 标签 | 意义 |
 |---|---|
-| Injected | more than one reply to a single query |
-| Proxied | every reply came from `198.18.0.0/15` — a local transparent proxy (fake-ip), so the measurement says nothing about the real path |
-| Answered | exactly one reply, outside the fake-ip range |
-| No reply | nothing came back inside the window |
-| Handshake OK / Rejected | the real server answered ServerHello, or refused |
+| 注入 | 单一查询收到多于一条回应 |
+| 代理拦截 | 所有回应都来自 `198.18.0.0/15`，即本地透明代理（fake-ip）；这说明量到的不是真实路径 |
+| 单一回应 | 只有一条回应，且落在 fake-ip 范围之外 |
+| 无回应 | 窗口内没有任何回应 |
+| 握手通过／被拒绝 | 真实服务器回了 ServerHello，或拒绝 |
 
-`DPI BYPASS` means the corresponding simulator did not find the blocked name;
-it is not a claim about any specific production middlebox.
+`DPI BYPASS` 表示对应的模拟器没找到被禁字符串，不代表任何实际生产环境的中间盒。
 
-## Measurements
+## 实测
 
-OnePlus CPH2691, Android 16, China Telecom Wi-Fi, no VPN, no proxy, no root,
-system DNS untouched. `proxied 0/7` in every run, so all replies below crossed the
-real path.
+OnePlus CPH2691、Android 16、中国电信 Wi-Fi、无 VPN、无代理、无 root、系统 DNS 未改。
+每次执行都是 `proxied 0/7`，所以底下每一条回应都走过真实路径。
 
-### DNS — three runs, same APK
+### DNS — 三次执行，同一个 APK
 
-| Case | A | B | C |
+| 用例 | A 次 | B 次 | C 次 |
 |---|---|---|---|
-| plain QNAME | 2 forged, no genuine | 3 replies (2 forged + genuine) | 3 forged + genuine |
-| forward pointer | 2 (forged + genuine) | 1 genuine — clean | 3 replies, 2/3 injected |
-| 2-hop chain | 2 (forged + `no-A`) | 2 (forged + `no-A`) | 2/3 injected, genuine `no-A` |
-| **decoy second question** | **1 genuine, clean** | **1 genuine, clean** | **0/3 injected** |
-| fake QDCOUNT | 1 header-only | 1 header-only | 0/3 injected |
-| Z + TC bits | 3 (2 forged + genuine) | 3 (2 forged + genuine) | every run injected |
-| fake AN/AR | 2 (forged + header-only) | 2 (forged + header-only) | every run injected |
+| 纯 QNAME | 2 条伪造，真解没到 | 3 条（2 伪造 + 真解） | 3 条伪造 + 真解 |
+| 前向压缩指针 | 伪造 + 真解 | **只有真解，干净** | 3 条，2/3 被注入 |
+| 两跳指针链 | 伪造 + `no-A` | 伪造 + `no-A` | 2/3 被注入，真解 `no-A` |
+| **诱饵第二问** | **只有真解** | **只有真解** | **0/3 被注入** |
+| 伪造 QDCOUNT | 只有头 | 只有头 | 0/3 被注入 |
+| Z + TC 位 | 2 伪造 + 真解 | 2 伪造 + 真解 | 每次都 被注入 |
+| 伪造 AN/AR | 伪造 + 只有头 | 伪造 + 只有头 | 每次都 被注入 |
 
-Across runs: **4 of 7 cases were injected on every single run**; only *decoy second
-question* stayed clean in all three.
+跨三次执行：**7 个用例里有 4 个每一次都被注入**；只有“诱饵第二问”三次都干净。
 
-### TLS — one run with a verified address
+### TLS — 一次执行，地址已验证
 
-Target `signal.org` on `104.18.11.47`. The address was verified first by sending
-an untouched ClientHello for `www.cloudflare.com` to it.
+目标 `signal.org`，地址 `104.18.11.47`。先用未改动的 `www.cloudflare.com` ClientHello 验证过该地址。
 
-| Case | SNI sent | Result |
+| 用例 | 送出的 SNI | 结果 |
 |---|---|---|
-| baseline | `signal.org` | connection reset |
-| control | `www.cloudflare.com` | ServerHello |
-| **trailing dot** | **`signal.org.`** | **ServerHello — bypass** |
-| omit SNI | (none) | alert (reached server, refused) |
-| Punycode-hex | `xn--…` | alert (reached server, refused) |
-| split at handshake header | `signal.org` | connection reset |
-| split at SNI | `signal.org` | connection reset |
-| mixed record versions | `signal.org` | connection reset |
+| 基线 | `signal.org` | 连接被重置 |
+| 对照组 | `www.cloudflare.com` | 握手通过 |
+| **尾点** | **`signal.org.`** | **握手通过 — 绕过** |
+| 省略 SNI | （无） | 被拒绝（抵达服务器，遭拒） |
+| Punycode-hex | `xn--…` | 被拒绝（抵达服务器，遭拒） |
+| 切在握手头内 | `signal.org` | 连接被重置 |
+| 切在 SNI 内 | `signal.org` | 连接被重置 |
+| 记录版本混用 | `signal.org` | 连接被重置 |
 
-Verdict: `handshake 1/7 · alert 2/7 · blocked 4/7` → **SNI bypass proven**.
+判定：`握手 1/7 · 抵达后拒绝 2/7 · 被拦截 4/7` → **已证明绕过 SNI**。
 
-What the numbers say:
+数据说明：
 
-- Forged DNS replies land at `+0 ms` to `+45 ms`; the genuine resolver answers at
-  `+120 ms` to `+277 ms`. The injector beats the round trip, so any implementation
-  that keeps the first reply is storing the forgery.
-- Forged addresses come from a rotating pool (`31.13.x`, `69.x`, `103.200-252.x`,
-  `104.244.x`, `108.160.x`, `128.242.x`, `157.240.x`, `162.125.x`, `173.252.x`,
-  `199.59.x`, `202.160.x`, `208.101.x`) and never match the real answer.
-- The trailing dot defeats the SNI matcher but not the server: `signal.org.` is the
-  same name to Cloudflare and a different string to the blocklist.
-- Record splitting lost every split variant, so this middlebox reassembles TLS
-  records. The paper's `first-record` weakness is already closed here.
-- `nosni` and Punycode-hex cleared the censor and reached the server; Cloudflare
-  then refused them. That is "reached", not "bypassed".
+- 伪造回应在 `+0ms` 到 `+45ms` 就到，真解析器要 `+120ms` 到 `+277ms`。注入器比往返还快，
+  所以任何保留第一条回应的实现，存的都是伪造值。
+- 伪造地址来自轮替的地址池（`31.13.x`、`69.x`、`103.200-252.x`、`104.244.x`、`108.160.x`、
+  `128.242.x`、`157.240.x`、`162.125.x`、`173.252.x`、`199.59.x`、`202.160.x`、`208.101.x`），
+  从未与真实答案相同。
+- 尾点骗过 SNI 比对器但没有骗过服务器：`signal.org.` 对 Cloudflare 是同一个名字，
+  对黑名单是不同字符串。
+- 记录拆分三种切法全灭，代表这个中间盒会重组 TLS 记录——论文依赖的
+  “只读首记录”缺陷在这里已经补上了。
+- 无 SNI 与 Punycode-hex 清掉了审查层、抵达服务器，但 Cloudflare 拒绝它们。这算“抵达”，不算“绕过”。
 
-## Known limits
+## 已知限制
 
-- TLS still cannot prove the path is direct. A ServerHello through a proxy is
-  still a ServerHello, so a `ServerHello` variant counts as a bypass only when the
-  control probe also handshakes and the baseline does not. The DNS badge
-  (`Proxied`) exists because DNS can detect a local proxy; TLS has no equivalent
-  signal, which is why the control probe carries that job.
-- The QUIC variants from §4.3 (reserved bits, CRYPTO fragmentation, bogus frame,
-  dual ClientHello) are not implemented: that needs a full QUIC Initial
-  encrypt/decrypt stack in the app.
-- The TCP/IP primitives from §4.6 (ghost segments, overlapping segment,
-  selective RST filtering) are not implemented: they need `VpnService` plus a
-  userspace TCP stack.
-- The DPI simulators are informed approximations of the paper's description,
-  not any particular production middlebox.
+- TLS 仍无法自证路径是直连。经代理回来的 ServerHello 一样是 ServerHello，所以某个变体回
+  `ServerHello` 只有在“对照组握手成功、基线被拒”时才算绕过。DNS 有 `代理拦截` 标签是因为
+  DNS 看得出本地代理；TLS 没有等价信号，这件事由对照组负责。
+- 论文 §4.3 的 QUIC 变形（保留位、CRYPTO 分片、伪帧、双 ClientHello）未实现：
+  需要在 app 内建完整的 QUIC Initial 加解密栈。
+- 论文 §4.6 的 TCP/IP 原语（幽灵段、重叠段、选择性 RST 过滤）未实现：
+  需要 `VpnService` 加用户态 TCP 栈。
+- DPI 模拟器是依照论文描述实现的近似，不等于任何特定生产中间盒。
 
-## Notes for rooted/desktop debugging
+## 桌面调试备注
 
-If the host hijacks traffic through a TUN device, an individual socket can
-still leave directly:
+若主机用 TUN 劫持流量，单个 socket 仍可直连出去：
 
 ```python
-s.setsockopt(socket.SOL_SOCKET, socket.SO_MARK, 0x80000)  # SO_MARK is 36, not 35
+s.setsockopt(socket.SOL_SOCKET, socket.SO_MARK, 0x80000)  # SO_MARK 是 36，不是 35
 ```
 
-`mihomo` installs `ip rule 5210: fwmark 0x80000/0xff0000 lookup main`, so any
-socket carrying that mark uses the physical table. `socket.SO_MARK` is the
-portable constant; the literal 35 is `SO_PRIORITY` and silently does nothing
-useful here.
+mihomo 安装了 `ip rule 5210: fwmark 0x80000/0xff0000 lookup main`，
+带这个 mark 的 socket 直接走物理路由表。请用 `socket.SO_MARK` 常量；
+字面值 35 是 `SO_PRIORITY`，在这里不会有任何效果。
 
-Android apps cannot set `SO_MARK` without `CAP_NET_ADMIN`, so this trick is a
-desktop-only escape hatch.
+Android app 没有 `CAP_NET_ADMIN` 就无法设置 `SO_MARK`，所以这招只在桌面可用。
 
-## License
+## 授权
 
-MIT — see [LICENSE](LICENSE).
+MIT，见 [LICENSE](LICENSE)。
 
-The code here reproduces the paper's published results. Strategy names, tables and
-section numbers follow the paper; see it for the original methodology and the
-authors' evaluation. No code from the original repository is vendored:
-`Probes.java` is an independent implementation of the described techniques.
+本项目的代码用于重现论文已发表的结果。策略名称、表格与章节编号皆沿用论文；
+原始方法与作者们的评估请见论文本身。本项目没有引用原始项目的代码，
+`Probes.java` 是对论文所述技术的独立实现。

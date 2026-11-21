@@ -1,6 +1,6 @@
 # CircumVolve 探針
 
-[English](README.md) · [简体中文](README.zh-CN.md) · **繁體中文**
+[English](README.en.md) · [简体中文](README.md) · **繁體中文**
 
 一個可在無 root 的 Android 裝置上執行的**直連探測**工具，用來重現
 《CircumVolve: Automated Discovery of Censorship Evasion Strategies Using
