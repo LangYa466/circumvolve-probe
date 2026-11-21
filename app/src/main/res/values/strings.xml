@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CircumVolve Probe</string>
+
+    <string name="title">CircumVolve Probe</string>
+    <string name="subtitle">No proxy · no root · direct packets\nDNS injector detection + TLS SNI record splitting</string>
+    <string name="action_run">Run all probes</string>
+    <string name="action_running">Probing…</string>
+    <string name="action_rerun">Run again</string>
+    <string name="action_copy">Copy report</string>
+    <string name="action_copied">Report copied</string>
+    <string name="action_copy_empty">Nothing to copy yet</string>
+    <string name="empty_hint">Tap the button above to start\nabout 100 seconds</string>
+
+    <string name="section_dns">DNS poisoning</string>
+    <string name="section_tls">SNI blocking</string>
+    <string name="section_tls_with_host">SNI blocking  [%1$s]</string>
+
+    <string name="summary">DNS  injector %1$d/%2$d · DPI bypass %3$d/%4$d%5$s\nTLS  ServerHello %6$d/%7$d · first-record bypass %8$d/%9$d</string>
+    <string name="summary_proxied_suffix"> · local proxy in path</string>
+
+    <string name="badge_injected">Injected</string>
+    <string name="badge_injected_all">Always injected</string>
+    <string name="badge_proxied">Proxied</string>
+    <string name="badge_answered">Answered</string>
+    <string name="badge_none">No reply</string>
+    <string name="badge_handshake">Handshake OK</string>
+    <string name="badge_rejected">Rejected</string>
+    <string name="badge_dash">—</string>
+
+    <string name="server_timeout">timeout</string>
+    <string name="server_not_tls">not TLS</string>
+    <string name="server_truncated">truncated</string>
+    <string name="server_error">error</string>
+
+    <string name="reply_none">no reply</string>
+    <string name="reply_rate">%1$d/%2$d runs injected</string>
+    <string name="reply_rate_clean">0/%1$d runs injected</string>
+    <string name="reply_rate_all">%1$d/%1$d runs injected</string>
+    <string name="reply_err">error: %1$s</string>
+    <string name="reply_line">+%1$dms  %2$s</string>
+
+    <string name="label_dpi">DPI</string>
+    <string name="label_server">Server</string>
+    <string name="label_replies">Replies</string>
+    <string name="label_resolvers">Resolvers tried</string>
+
+    <string name="dpi_both_bypass">BYPASS (both matchers)</string>
+    <string name="dpi_literal_detected">DETECTED (literal matcher)</string>
+    <string name="dpi_pointer_aware">BYPASS (literal) / DETECTED (pointer-aware)</string>
+    <string name="dpi_first_record">DETECTED (first record)</string>
+    <string name="dpi_partial">BYPASS (first record) / DETECTED (reassembly)</string>
+    <string name="dpi_full">BYPASS</string>
+
+    <string name="host_unverified">%1$s → %2$s (control failed, address unverified)</string>
+    <string name="host_verified">%1$s → %2$s (control handshook, address verified)</string>
+
+    <!-- DNS cases -->
+    <string name="dns_seed_name">plain QNAME (baseline)</string>
+    <string name="dns_seed_note">no evasion</string>
+    <string name="dns_fwd_name">forward compression pointer</string>
+    <string name="dns_fwd_note">literal name moved to offset 32</string>
+    <string name="dns_chain_name">2-hop forward pointer chain</string>
+    <string name="dns_chain_note">two hops before the literal name</string>
+    <string name="dns_decoy_name">decoy second question</string>
+    <string name="dns_decoy_note">QDCOUNT=2, Q1 benign, Q2 blocked</string>
+    <string name="dns_fakeqd_name">fake QDCOUNT</string>
+    <string name="dns_fakeqd_note">claims 2 questions, sends 1</string>
+    <string name="dns_ztc_name">Z + TC bits set</string>
+    <string name="dns_ztc_note">reserved and truncated bits</string>
+    <string name="dns_counts_name">fake AN/AR counts</string>
+    <string name="dns_counts_note">header claims records that are absent</string>
+
+    <!-- TLS cases -->
+    <string name="tls_seed_name">plain ClientHello (baseline)</string>
+    <string name="tls_seed_note">no evasion</string>
+    <string name="tls_split_head_name">split inside handshake header</string>
+    <string name="tls_split_head_note">first record is 3 bytes</string>
+    <string name="tls_split_sni_name">split inside SNI</string>
+    <string name="tls_split_sni_note">cut point lands in the hostname</string>
+    <string name="tls_split_ver_name">mixed record versions</string>
+    <string name="tls_split_ver_note">0x0303 then 0x0301</string>
+    <string name="tls_nosni_name">omit server_name</string>
+    <string name="tls_nosni_note">no SNI extension at all</string>
+    <string name="tls_dot_name">trailing dot FQDN</string>
+    <string name="tls_dot_note">host sent in FQDN form with a trailing dot</string>
+    <string name="tls_pad_name">padding to force TCP split</string>
+    <string name="tls_pad_note">RFC 7685 4 KiB padding</string>
+    <string name="tls_puny_name">Punycode-hex SNI</string>
+    <string name="tls_puny_note">paper\'s QUIC trick, tried on TLS</string>
+    <string name="sni_not_blocked">SNI not blocked — no control group</string>
+    <string name="sni_blocked_no_evasion">SNI blocked, no variant got through</string>
+    <string name="sni_bypass_proven">SNI bypass proven — %1$d/%2$d variants handshook</string>
+    <string name="sni_unknown">SNI verdict unknown</string>
+    <string name="tls_control_name">control: allowed name on the same IP</string>
+        <string name="tls_control_note">untouched ClientHello for %1$s on the same address</string>
+    <string name="sni_ip_blocked">address blocked, no SNI conclusion</string>
+    <string name="sni_no_address">no address accepted the control name</string>
+    <string name="progress_step">%1$d/%2$d  %3$s</string>
+    <string name="server_reset">connection reset</string>
+    <string name="server_connect_failed">connect failed</string>
+    <string name="sni_summary">handshake %1$d/%4$d · alert %2$d/%4$d · blocked %3$d/%4$d</string>
+</resources>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CircumVolve 探針</string>
+
+    <string name="title">CircumVolve 探針</string>
+    <string name="subtitle">無代理 · 無 root · 直連\nDNS 注入偵測 + TLS SNI 記錄拆分</string>
+    <string name="action_run">執行全部探測</string>
+    <string name="action_running">探測中…</string>
+    <string name="action_copy">複製報告</string>
+    <string name="action_copied">報告已複製</string>
+    <string name="action_copy_empty">還沒有結果可複製</string>
+    <string name="action_rerun">重新執行</string>
+    <string name="empty_hint">點上方按鈕開始\n全程約 100 秒</string>
+
+    <string name="section_dns">DNS 污染</string>
+    <string name="section_tls">SNI 封鎖</string>
+    <string name="section_tls_with_host">SNI 封鎖  [%1$s]</string>
+
+    <string name="summary">DNS  注入 %1$d/%2$d · DPI 繞過 %3$d/%4$d%5$s\nTLS  ServerHello %6$d/%7$d · 首記錄繞過 %8$d/%9$d</string>
+    <string name="summary_proxied_suffix"> · 走了本地代理</string>
+
+    <string name="badge_injected">注入</string>
+    <string name="badge_injected_all">全數注入</string>
+    <string name="badge_proxied">代理攔截</string>
+    <string name="badge_answered">單一回應</string>
+    <string name="badge_none">無回應</string>
+    <string name="badge_handshake">握手通過</string>
+    <string name="badge_rejected">被拒絕</string>
+    <string name="badge_dash">—</string>
+
+    <string name="server_timeout">逾時</string>
+    <string name="server_not_tls">非 TLS</string>
+    <string name="server_truncated">被截斷</string>
+    <string name="server_error">錯誤</string>
+
+    <string name="reply_none">無回應</string>
+    <string name="reply_rate">%1$d/%2$d 次被注入</string>
+    <string name="reply_rate_clean">0/%1$d 次被注入</string>
+    <string name="reply_rate_all">每次都 被注入</string>
+    <string name="reply_line">+%1$dms  %2$s</string>
+    <string name="reply_err">錯誤：%1$s</string>
+
+    <string name="label_dpi">DPI</string>
+    <string name="label_server">伺服器</string>
+    <string name="label_replies">回應</string>
+    <string name="label_resolvers">已試解析器</string>
+
+    <string name="dpi_both_bypass">BYPASS（兩種比對器）</string>
+    <string name="dpi_literal_detected">DETECTED（字面比對器）</string>
+    <string name="dpi_pointer_aware">BYPASS（字面） / DETECTED（跟隨指標）</string>
+    <string name="dpi_first_record">DETECTED（首記錄）</string>
+    <string name="dpi_partial">BYPASS（首記錄） / DETECTED（完整重組）</string>
+    <string name="dpi_full">BYPASS</string>
+
+    <string name="host_unverified">%1$s → %2$s（對照組失敗，位址未驗證）</string>
+    <string name="host_verified">%1$s → %2$s（對照組握手成功，位址已驗證）</string>
+
+    <string name="dns_seed_name">純 QNAME（基線）</string>
+    <string name="dns_seed_note">不做任何規避</string>
+    <string name="dns_fwd_name">前向壓縮指標</string>
+    <string name="dns_fwd_note">把字面網域移到 offset 32</string>
+    <string name="dns_chain_name">兩跳前向指標鏈</string>
+    <string name="dns_chain_note">跳兩次才到字面網域</string>
+    <string name="dns_decoy_name">誘餌第二問</string>
+    <string name="dns_decoy_note">QDCOUNT=2，Q1 無害，Q2 被禁</string>
+    <string name="dns_fakeqd_name">偽造 QDCOUNT</string>
+    <string name="dns_fakeqd_note">宣稱兩問，實際只送一問</string>
+    <string name="dns_ztc_name">設定 Z 與 TC 位</string>
+    <string name="dns_ztc_note">保留位與截斷位</string>
+    <string name="dns_counts_name">偽造 AN/ARCOUNT</string>
+    <string name="dns_counts_note">標頭宣稱存在實際沒有的記錄</string>
+
+    <string name="tls_seed_name">純 ClientHello（基線）</string>
+    <string name="tls_seed_note">不做任何規避</string>
+    <string name="tls_split_head_name">切在握手標頭內</string>
+    <string name="tls_split_head_note">第一條記錄只有 3 位元組</string>
+    <string name="tls_split_sni_name">切在 SNI 內</string>
+    <string name="tls_split_sni_note">切點落在主機名中間</string>
+    <string name="tls_split_ver_name">記錄版本混用</string>
+    <string name="tls_split_ver_note">先 0x0303 再 0x0301</string>
+    <string name="tls_nosni_name">省略 server_name</string>
+    <string name="tls_nosni_note">完全不送 SNI 擴充</string>
+    <string name="tls_dot_name">帶尾點的 FQDN</string>
+    <string name="tls_dot_note">主機名以帶尾點的 FQDN 形式送出</string>
+    <string name="tls_pad_name">填充撐大以觸發 TCP 分段</string>
+    <string name="tls_pad_note">RFC 7685 的 4 KiB 填充</string>
+    <string name="tls_puny_name">Punycode-hex SNI</string>
+    <string name="tls_puny_note">論文用於 QUIC 的手法，這裡試在 TLS</string>
+    <string name="sni_not_blocked">SNI 未被封，無對照組</string>
+    <string name="sni_blocked_no_evasion">SNI 被封，但無變體通過</string>
+    <string name="sni_bypass_proven">已證明繞過 SNI — %1$d/%2$d 個變體握手成功</string>
+    <string name="sni_unknown">SNI 判定未知</string>
+    <string name="tls_control_name">對照組：同一 IP 上的白名單網域</string>
+        <string name="tls_control_note">未改動的 ClientHello 送 %1$s，證明封的是 SNI 而不是 IP</string>
+    <string name="sni_ip_blocked">IP 被封，無法判定 SNI</string>
+    <string name="sni_no_address">沒有任何位址接受對照組主機名</string>
+    <string name="progress_step">%1$d/%2$d  %3$s</string>
+    <string name="server_reset">連線被重置</string>
+    <string name="server_connect_failed">無法連線</string>
+    <string name="sni_summary">握手 %1$d/%4$d · 抵達後拒絕 %2$d/%4$d · 被攔截 %3$d/%4$d</string>
+</resources>
